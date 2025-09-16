@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>同時到着出発時刻計算ツール</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .user-input { margin-bottom: 10px; }
+    textarea { width: 100%; height: 100px; }
+    input { margin: 2px; }
+  </style>
+</head>
+<body>
+  <h1>同時到着出発時刻計算ツール</h1>
+
+  <label>第一ユーザーの出発時刻:</label><br>
+  <input type="number" id="startHour" placeholder="時 (0-23)" min="0" max="23">
+  <input type="number" id="startMinute" placeholder="分 (0-59)" min="0" max="59">
+  <input type="number" id="startSecond" placeholder="秒 (0-59)" min="0" max="59">
+  <br><br>
+
+  <div id="userContainer">
+  <!-- 最大5人分の入力欄 -->
+</div>
+
+  <button onclick="addUser()">＋ユーザーを追加（最大5人）</button>
+  <button onclick="calculate()">出発時刻を計算</button>
+
+  <h2>結果：</h2>
+  <textarea id="result" readonly></textarea>
+
+  <script>
+    let userCount = 0;
+    const maxUsers = 5;
+
+    function addUser() {
+      if (userCount >= maxUsers) return;
+
+      const container = document.getElementById('userContainer');
+      const div = document.createElement('div');
+      div.className = "user-input";
+      div.innerHTML = `
+        <label>ユーザー${userCount + 1}：</label>
+        <input type="text" placeholder="名前" id="name${userCount}">
+        <input type="number" placeholder="所要時間（秒）" id="time${userCount}" min="0">
+        <input type="number" placeholder="何秒前に到着？" id="early${userCount}" min="0" value="0"> 秒前
+      `;
+      container.appendChild(div);
+      userCount++;
+    }
+
+    function pad(num) {
+      return num.toString().padStart(2, '0');
+    }
+
+    function calculate() {
+	// 結果欄をリセット
+  	document.getElementById('result').value = "";
+
+      const h = parseInt(document.getElementById('startHour').value || 0);
+      const m = parseInt(document.getElementById('startMinute').value || 0);
+      const s = parseInt(document.getElementById('startSecond').value || 0);
+      const startTimeInSec = h * 3600 + m * 60 + s;
+
+      let arrivalTime = null;
+      const users = [];
+
+     for (let i = 0; i < userCount; i++) {
+  const name = document.getElementById(`name${i}`).value || `ユーザー${i + 1}`;
+  const time = parseInt(document.getElementById(`time${i}`).value || 0);
+
+  let early = 0;
+  if (i !== 0) {
+    const earlyInput = document.getElementById(`early${i}`);
+    early = earlyInput && earlyInput.value !== "" ? parseInt(earlyInput.value) : 0;
+  }
+
+  users.push({ name, time, early });
+
+  // 第一ユーザーの到着時刻を基準にする
+  if (i === 0) {
+    arrivalTime = startTimeInSec + time;
+  }
+}
+
+      let output = "";
+      users.forEach((user) => {
+  const adjustedArrival = arrivalTime - user.early;
+  const departureSec = adjustedArrival - user.time;
+
+  const hh = Math.floor((departureSec + 86400) % 86400 / 3600);
+  const mm = Math.floor((departureSec % 3600) / 60);
+  const ss = (departureSec % 60 + 60) % 60;
+
+  output += `${user.name}さんは${pad(hh)}時${pad(mm)}分${pad(ss)}秒出発、\n`;
+});
+      document.getElementById('result').value = output.trim();
+    }
+
+    // 初期表示で1人分だけ入力欄追加
+    window.onload = () => {
+      addUser();
+    };
+  </script>
+</body>
+</html>
